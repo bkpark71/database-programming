@@ -14,8 +14,10 @@ public class MainApp {
     if(conn != null) {
       while(true){
         System.out.println("메뉴를 선택해주세요 (종료하려면 -1) ");
-        System.out.println("(1:도서리스트, 2:고객리스트, 3:주문리스트 ");
-        System.out.print("11:도서추가등록, 12:고객추가등록, 13:주문등록) : ");
+        System.out.println("(조회 1:도서리스트, 2:고객리스트, 3:주문리스트, ");
+        System.out.println("등록 11:도서추가등록, 12:고객추가등록, 13:주문등록,  ");
+        System.out.println("수정 21:도서정보수정, 22:고객정보수정, 23:주문정보수정, ");
+        System.out.print("삭제 31:도서정보삭제, 32:고객정보삭제, 33:주문정보삭제) : ");
         menu = in.nextInt();
         if(menu < 0){
           System.out.println("프로그램을 종료합니다.");
@@ -41,12 +43,138 @@ public class MainApp {
             case 13:
               addOrder();
               break;
+            case 21:
+              changeBook();
+              break;
+            case 22:
+              changeCustomer();
+              break;
+            case 23:
+              changeOrder();
+              break;
+            case 31:
+              removeBook(); 
+              break;
+            case 32:
+              removeCustomer();
+              break;
+            case 33:
+              removeOrder();
+              break;
           }
         } catch (SQLException e) {
           throw new RuntimeException(e);
         }
       }
     }
+  }
+
+  private static void removeBook() {
+  }
+
+  private static void removeCustomer() throws SQLException {
+    // 삭제하고 싶은 고객id 입력받아서 내용 확인하기
+    System.out.print("삭제할 고객의 id를 입력하세요.");
+    int custId = in.nextInt();
+    String sql = "SELECT name, address, phone FROM customer where custid = ?;";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, custId);
+    ResultSet rs = pstmt.executeQuery();
+    System.out.println(" === 삭제하려는 고객 정보 ===");
+    if(rs != null && rs.next()) {
+      System.out.println(rs.getString(1) + ","
+          + rs.getString(2) + ","
+          + rs.getString(3));
+    }
+    // 삭제하려는 고객의 주문정보가 있는지 내용 확인하기
+    sql = "SELECT bookname, saleprice, orderdate FROM vorders where custid = ?;";
+    pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, custId);
+    rs = pstmt.executeQuery();
+    if(rs != null) {
+      System.out.println(" === 삭제하려는 주문 정보 ===");
+      while(rs.next()) {
+        System.out.println(rs.getString(1) + ","
+            + rs.getInt(2) + ","
+            + rs.getDate(3));
+      }
+    }
+    // 삭제확인 후 db에서 삭제 진행하기
+    System.out.print("삭제하시겠습니까? (Y/N) : ");
+    String confirm = in.next();
+    if(confirm.equalsIgnoreCase("Y")) {
+      sql = "delete from orders where custid = ? ;";
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setInt(1,custId);
+      int res1 = pstmt.executeUpdate();
+      if(res1 > 0) {
+        sql = "delete from customer where custid = ? ;";
+        pstmt = conn.prepareStatement(sql);
+        pstmt.setInt(1,custId);
+        int res2 = pstmt.executeUpdate();
+        if(res2 == 1) System.out.println("삭제완료!");
+      }
+    }
+  }
+
+  private static void removeOrder() throws SQLException {
+    // 삭제하고 싶은 주문id 입력받아서 내용 확인하기
+    System.out.print("삭제할 주문의 id를 입력하세요.");
+    int orderId = in.nextInt();
+    String sql = "SELECT name, bookname, saleprice, orderdate FROM vorders where orderid = ?;";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, orderId);
+    ResultSet rs = pstmt.executeQuery();
+    if(rs != null && rs.next()) {
+      System.out.println(rs.getString(1) + ","
+          + rs.getString(2) + ","
+          + rs.getInt(3) + ","
+          + rs.getDate(4));
+    }
+    // 삭제확인 후 db에서 삭제 진행하기
+    System.out.print("삭제하시겠습니까? (Y/N)");
+    String confirm = in.next();
+    if(confirm.equalsIgnoreCase("Y")) {
+      sql = "delete from orders where orderid = ? ;";
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setInt(1,orderId);
+      int res = pstmt.executeUpdate();
+      if(res == 1) System.out.println("삭제완료!");
+    }
+  }
+
+  private static void changeBook() throws SQLException {
+    // 수정하고 싶은 책id 입력받아서 내용 확인하기
+    System.out.print("수정할 책의 id를 입력하세요.");
+    int bookId = in.nextInt();
+    String sql = "SELECT bookname, publisher, price FROM book where bookid = ?;";
+    PreparedStatement pstmt = conn.prepareStatement(sql);
+    pstmt.setInt(1, bookId);
+    ResultSet rs = pstmt.executeQuery();
+    if(rs != null && rs.next()) {
+      System.out.println(rs.getString(1) + ","
+                        + rs.getString(2) + ","
+                        + rs.getInt(3));
+    }
+    // 수정할 도서정보 입력받아서 db에 업데이트하기
+    System.out.print("책의 가격을 수정하려면 입력하세요. 수정하지 않으려면 !");
+    String price = in.next();
+    if(!price.equals("!")) {
+      sql = "update book set price = ? where bookid = ? ;";
+      pstmt = conn.prepareStatement(sql);
+      pstmt.setInt(1,Integer.parseInt(price));
+      pstmt.setInt(2,bookId);
+      int res = pstmt.executeUpdate();
+      if(res == 1) System.out.println("수정완료!");
+    }
+   }
+
+  private static void changeCustomer() {
+
+  }
+
+  private static void changeOrder() {
+
   }
 
   private static void addBook() throws SQLException {
